@@ -1,0 +1,225 @@
+? cscope.out
+? src/common/cmd/vxfs/fscache/.fscache.c.swp
+Index: src/common/cmd/vxfs/fscache/fscache.c
+===================================================================
+RCS file: /project/vxfs-cvs/src/common/cmd/vxfs/fscache/fscache.c,v
+retrieving revision 1.69
+diff -u -p -r1.69 fscache.c
+--- src/common/cmd/vxfs/fscache/fscache.c	4 Dec 2014 08:14:54 -0000	1.69
++++ src/common/cmd/vxfs/fscache/fscache.c	18 Feb 2015 05:38:05 -0000
+@@ -2,7 +2,7 @@
+ /* #ident "@(#)vxfs:$RCSfile: fscache.c,v $	$Revision: 1.69 $" */
+ 
+ /*
+- * $Copyright: Copyright (c) 2015 Symantec Corporation.
++ * $Copyright: Copyright (c) 2014 Symantec Corporation.
+  * All rights reserved.
+  *
+  * THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS OF
+@@ -24,6 +24,7 @@
+ #include "fscache.h"
+ #include "vx_wb_log.h"
+ 
++STATIC int	a = 0;
+ STATIC void	usage(struct action *);
+ STATIC void	cmd_cleanup(int);
+ STATIC int	get_cache_usage(char *, struct vx_fscache_param *);
+@@ -1171,7 +1172,13 @@ do_create(
+ 		}
+ 		return 1;
+ 	}
+-	cachename = DEFAULT_CACHENAME;
++	if (a == 0) {
++		cachename = DEFAULT_CACHENAME;
++		a++;
++	} else if (a == 1) {
++		cachename = "cache1";
++		a--;
++	}
+ 	strncpy(ioc.reg_cachename, cachename, (VXC_CACHENAME_LEN -1));
+ 	ioc.reg_cachename[VXC_CACHENAME_LEN - 1] = 0;
+ 	strncpy(ioc.reg_devname, bdev, (VXC_DEVNAME_LEN - 1));
+@@ -1184,6 +1191,7 @@ do_create(
+ 	ioc.reg_dev_type = device_type;
+ 	ioc.reg_connmap = conn_map;
+ 	if (VX_LICENSE_SEARCH(VXFS_CFSFEATURE)) {
++		printf("do_create license\n");
+ 		ioc.reg_flags |= VXC_REG_RESERVE;
+ 	}
+ 	ioc.reg_flags |= VXC_REG_CREATE;
+@@ -1319,7 +1327,13 @@ do_online(
+ 		error = ENXIO;
+ 		goto out;
+ 	}
+-	cachename = DEFAULT_CACHENAME;
++	if (a == 0) {
++		cachename = DEFAULT_CACHENAME;
++		a++;
++	} else if (a == 1) {
++		cachename = "cache1";
++		a--;
++	}
+ 	strncpy(ioc.reg_cachename, cachename, (VXC_CACHENAME_LEN - 1));
+ 	ioc.reg_cachename[VXC_CACHENAME_LEN - 1] = 0;
+ 	strncpy(ioc.reg_devname, bdev, (VXC_DEVNAME_LEN - 1));
+@@ -1391,7 +1405,13 @@ do_offline(
+ 			   ":8256:Failed to offline cache\n");
+ 		return 1;
+ 	}
+-	cachename = DEFAULT_CACHENAME;
++	if (a == 0) {
++		cachename = DEFAULT_CACHENAME;
++		a++;
++	} else if (a == 1){
++		cachename = "cache1";
++		a--;
++	}
+ 	fd = open(VXC_DEV_PATH, O_RDWR);
+ 	if (fd == -1) {
+ 		VX_IPRINTF(stderr, VXI_ERROR, ":5963:Failed to open %s: %s\n",
+@@ -2683,17 +2703,17 @@ do_info(
+ 		goto out;
+ 	}
+ 	off = 0;
++	cdoff = 0;
+ 	while (off < info.inf_bufsz) {
+ 		cinfo = (vxc_cache_info_t *)((char *)info.inf_buf + off);
+ 		off += sizeof (vxc_cache_info_t);
+-		cdoff = 0;
+ 		size = 0;
+-		while (cdoff < cinfo->cinf_cdevbufsz) {
++		//while (cdoff < cinfo->cinf_cdevbufsz) {
+ 			cdinfo = (vxc_cache_dev_info_t *)
+ 				((char *)info.inf_buf + off + cdoff);
+ 			size += cdinfo->cdinf_size;
+-			cdoff += sizeof (vxc_cache_dev_info_t);
+-		}
++			//cdoff += sizeof (vxc_cache_dev_info_t);
++		//}
+ 		VX_IPRINTF(stdout, VXI_NOSTD, ":8197:Cachearea: %s\n",
+ 			   cinfo->cinf_cachename);
+ 		VX_IPRINTF(stdout, VXI_NOSTD, ":8198:Assoc Type: %s\n",
+@@ -2715,13 +2735,13 @@ do_info(
+ 			printf("fullfsck\n");
+ 		}
+ 		printf("\n\n");
+-		cdoff = 0;
+-		while (cdoff < cinfo->cinf_cdevbufsz) {
++		//cdoff = 0;
++		//while (cdoff < cinfo->cinf_cdevbufsz) {
+ 			cdinfo = (vxc_cache_dev_info_t *)
+ 				((char *)info.inf_buf + off + cdoff);
+ 			printf("%s\n", cdinfo->cdinf_devname);
+-			cdoff += sizeof (vxc_cache_dev_info_t);
+-		}
++		//}
++		cdoff += sizeof (vxc_cache_dev_info_t);
+ 		off += cdoff;
+ 	}
+ 
+Index: src/common/cmd/vxfs/mount/mount.c
+===================================================================
+RCS file: /project/vxfs-cvs/src/common/cmd/vxfs/mount/mount.c,v
+retrieving revision 4.169
+diff -u -p -r4.169 mount.c
+--- src/common/cmd/vxfs/mount/mount.c	12 Sep 2014 04:59:45 -0000	4.169
++++ src/common/cmd/vxfs/mount/mount.c	18 Feb 2015 05:38:08 -0000
+@@ -2,7 +2,7 @@
+ /* #ident "@(#)vxfs:$RCSfile: mount.c,v $	$Revision: 4.169 $" */
+ 
+ /*
+- * $Copyright: Copyright (c) 2015 Symantec Corporation.
++ * $Copyright: Copyright (c) 2014 Symantec Corporation.
+  * All rights reserved.
+  *
+  * THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS OF
+Index: src/common/kernel/vxcafs/vxc_ioctl.c
+===================================================================
+RCS file: /project/vxfs-cvs/src/common/kernel/vxcafs/vxc_ioctl.c,v
+retrieving revision 1.47
+diff -u -p -r1.47 vxc_ioctl.c
+--- src/common/kernel/vxcafs/vxc_ioctl.c	30 Jan 2015 07:46:33 -0000	1.47
++++ src/common/kernel/vxcafs/vxc_ioctl.c	18 Feb 2015 05:38:09 -0000
+@@ -2,7 +2,7 @@
+ /* #ident "@(#)vxfs:$RCSfile: vxc_ioctl.c,v $	$Revision: 1.47 $" */
+ 
+ /*
+- * $Copyright: Copyright (c) 2015 Symantec Corporation.
++ * $Copyright: Copyright (c) 2014 Symantec Corporation.
+  * All rights reserved.
+  *
+  * THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS OF
+@@ -297,15 +297,14 @@ vxc_ioctl_register(
+ 	ioc.reg_cachename[VXC_CACHENAME_LEN - 1] = 0;
+ 	error = vxc_cache_get(ioc.reg_cachename, &cache);
+ 	if (error == ENOENT) {
++		printf("vxc_ioctl_register ENOENT\n");
+ 		error = vxc_cache_create(ioc.reg_cachename, &cache, &created);
+ 	}
+ 	if (error) {
++		printf("vxc_ioctl_register no ENOENT\n");
+ 		return error;
+ 	}
+-	if (cache->c_cdev.cd_next != &cache->c_cdev) {
+-		error = EEXIST;
+-		goto out;
+-	}
++	printf("vxc_ioctl_register after vxc_cache_get\n");
+ 	devname = ioc.reg_devname;
+ 
+ 	/*
+@@ -647,6 +646,7 @@ vxc_ioctl_unregister(
+ 	if (cache->c_cdev.cd_next == &cache->c_cdev) {
+ 		vxc_cache_destroy(cache);
+ 		cache = NULL;
++		printf("1234");
+ 	}
+ 
+ out:
+@@ -777,9 +777,11 @@ vxc_ioctl_info(
+ 			fs = fsext->fse_fs;
+ 			cdinfo->cdinf_size = fs->fs_size << fs->fs_bshift;
+ 			if (fsext->fse_disabled) {
++				printf("vxc_ioctl_info fse_disabled\n");
+ 				cinfo->cinf_flags |= VXC_CINF_DISABLED;
+ 			}
+ 			if (fs->fs_flags & VX_FULLFSCK) {
++				printf("vxc_ioctl_info VX_FULLFSCK\n");
+ 				cinfo->cinf_flags |= VXC_CINF_FULLFSCK;
+ 			}
+ 			VX_INACTIVE1(fsext);
+Index: src/common/kernel/vxcafs/vxc_util.c
+===================================================================
+RCS file: /project/vxfs-cvs/src/common/kernel/vxcafs/vxc_util.c,v
+retrieving revision 1.7
+diff -u -p -r1.7 vxc_util.c
+--- src/common/kernel/vxcafs/vxc_util.c	10 Jul 2014 11:19:06 -0000	1.7
++++ src/common/kernel/vxcafs/vxc_util.c	18 Feb 2015 05:38:11 -0000
+@@ -2,7 +2,7 @@
+ /* #ident "@(#)vxfs:$RCSfile: vxc_util.c,v $	$Revision: 1.7 $" */
+ 
+ /*
+- * $Copyright: Copyright (c) 2015 Symantec Corporation.
++ * $Copyright: Copyright (c) 2014 Symantec Corporation.
+  * All rights reserved.
+  *
+  * THIS SOFTWARE CONTAINS CONFIDENTIAL INFORMATION AND TRADE SECRETS OF
+@@ -177,6 +177,8 @@ vxc_cache_get(
+ 	VXC_CACHE_LIST_LOCK(&ipl);
+ 	cur = vxc_cache_list.c_next;
+ 	while (cur->c_namelen != 0) {
++		printf("cur->c_name = %s", cur->c_name);
++		printf("name = %s", name);
+ 
+ 		/*
+ 		 * If name is NULL, we're looking for the default cache. For
+@@ -186,7 +188,9 @@ vxc_cache_get(
+ 
+ 		if (name == NULL ||
+ 		    strncmp(name, cur->c_name, cur->c_namelen + 1) == 0) {
++			printf("vxc_cache_get 1 \n");
+ 			if (!vxc_cache_hold(cur)) {
++				printf("vxc_cache_get cache hold \n");
+ 				*cachep = cur;
+ 				error = 0;
+ 			}
